@@ -12,7 +12,6 @@ use Icinga\Data\ResourceFactory;
 use Icinga\Exception\ConfigurationError;
 use Icinga\Exception\NotReadableError;
 use Icinga\Application\Logger;
-use Icinga\Util\DateTimeFactory;
 use Icinga\Util\Translator;
 use Icinga\Exception\IcingaException;
 
@@ -135,17 +134,19 @@ abstract class ApplicationBootstrap
         $this->vendorDir = $baseDir . '/library/vendor';
         $this->libDir = realpath(__DIR__ . '/../..');
 
+        $this->setupAutoloader();
+
         if ($configDir === null) {
             if (array_key_exists('ICINGAWEB_CONFIGDIR', $_SERVER)) {
                 $configDir = $_SERVER['ICINGAWEB_CONFIGDIR'];
             } else {
-                $configDir = '/etc/icingaweb2';
+                $configDir = Platform::isWindows()
+                    ? $baseDir . '/config'
+                    : '/etc/icingaweb2';
             }
         }
         $canonical = realpath($configDir);
         $this->configDir = $canonical ? $canonical : $configDir;
-
-        $this->setupAutoloader();
 
         set_include_path(
             implode(
@@ -568,7 +569,6 @@ abstract class ApplicationBootstrap
                 date_default_timezone_set($timezone);
             }
         }
-        DateTimeFactory::setConfig(array('timezone' => $timezone));
         return $this;
     }
 

@@ -50,11 +50,16 @@ class Monitoring_ServicesController extends Controller
     protected function handleCommandForm(ObjectsCommandForm $form)
     {
         $this->serviceList->setColumns(array(
+            'host_icon_image',
+            'host_icon_image_alt',
             'host_name',
+            'host_address',
             'host_output',
             'host_state',
             'host_problem',
             'host_handled',
+            'service_icon_image',
+            'service_icon_image_alt',
             'service_description',
             'service_state',
             'service_problem',
@@ -93,11 +98,16 @@ class Monitoring_ServicesController extends Controller
             ->handleRequest();
         $this->view->checkNowForm = $checkNowForm;
         $this->serviceList->setColumns(array(
+            'host_icon_image',
+            'host_icon_image_alt',
             'host_name',
+            'host_address',
             'host_output',
             'host_state',
             'host_problem',
             'host_handled',
+            'service_icon_image',
+            'service_icon_image_alt',
             'service_output',
             'service_description',
             'service_state',
@@ -139,13 +149,14 @@ class Monitoring_ServicesController extends Controller
         $this->view->objects = $this->serviceList;
         $this->view->unhandledObjects = $this->serviceList->getUnhandledObjects();
         $this->view->problemObjects = $this->serviceList->getProblemObjects();
-        $this->view->acknowledgeUnhandledLink = Url::fromPath('monitoring/services/acknowledge-problem')
-            ->setQueryString($this->serviceList->getUnhandledObjects()->objectsFilter()->toQueryString());
         $this->view->downtimeUnhandledLink = Url::fromPath('monitoring/services/schedule-downtime')
             ->setQueryString($this->serviceList->getUnhandledObjects()->objectsFilter()->toQueryString());
         $this->view->downtimeLink = Url::fromPath('monitoring/services/schedule-downtime')
             ->setQueryString($this->serviceList->getProblemObjects()->objectsFilter()->toQueryString());
         $this->view->acknowledgedObjects = $acknowledgedObjects;
+        $this->view->acknowledgeLink = Url::fromPath('monitoring/services/acknowledge-problem')
+            ->setQueryString($this->serviceList->getUnacknowledgedObjects()->objectsFilter()->toQueryString());
+        $this->view->unacknowledgedObjects = $this->serviceList->getUnacknowledgedObjects();
         $this->view->objectsInDowntime = $this->serviceList->getObjectsInDowntime();
         $this->view->inDowntimeLink = Url::fromPath('monitoring/list/services')
             ->setQueryString($this->serviceList->getObjectsInDowntime()

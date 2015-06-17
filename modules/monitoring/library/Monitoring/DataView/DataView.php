@@ -3,7 +3,6 @@
 
 namespace Icinga\Module\Monitoring\DataView;
 
-use ArrayIterator;
 use IteratorAggregate;
 use Icinga\Data\QueryInterface;
 use Icinga\Data\Filter\Filter;
@@ -13,6 +12,7 @@ use Icinga\Data\ConnectionInterface;
 use Icinga\Exception\QueryException;
 use Icinga\Web\Request;
 use Icinga\Web\Url;
+use Icinga\Module\Monitoring\Backend\Ido\Query\IdoQuery;
 use Icinga\Module\Monitoring\Backend\MonitoringBackend;
 
 /**
@@ -23,7 +23,7 @@ abstract class DataView implements QueryInterface, IteratorAggregate
     /**
      * The query used to populate the view
      *
-     * @var QueryInterface
+     * @var IdoQuery
      */
     protected $query;
 
@@ -61,11 +61,11 @@ abstract class DataView implements QueryInterface, IteratorAggregate
     /**
      * Return a iterator for all rows of the result set
      *
-     * @return  ArrayIterator
+     * @return  IdoQuery
      */
     public function getIterator()
     {
-        return new ArrayIterator($this->fetchAll());
+        return $this->getQuery();
     }
 
     /**
@@ -247,11 +247,11 @@ abstract class DataView implements QueryInterface, IteratorAggregate
             };
         }
 
-        $globalDefaultOrder = isset($sortColumns['order']) ? $sortColumns['order'] : static::SORT_ASC;
-        $globalDefaultOrder = (strtoupper($globalDefaultOrder) === static::SORT_ASC) ? 'ASC' : 'DESC';
+        $order = $order === null ? (isset($sortColumns['order']) ? $sortColumns['order'] : static::SORT_ASC) : $order;
+        $order = (strtoupper($order) === static::SORT_ASC) ? 'ASC' : 'DESC';
 
         foreach ($sortColumns['columns'] as $column) {
-            list($column, $specificDefaultOrder) = $this->query->splitOrder($column);
+            list($column, $direction) = $this->query->splitOrder($column);
             if (! $this->isValidFilterTarget($column)) {
                 throw new QueryException(
                     mt('monitoring', 'The sort column "%s" is not allowed in "%s".'),
@@ -259,10 +259,7 @@ abstract class DataView implements QueryInterface, IteratorAggregate
                     get_class($this)
                 );
             }
-            $this->query->order(
-                $column,
-                $order === null && $specificDefaultOrder !== null ? $specificDefaultOrder : $globalDefaultOrder
-            );
+            $this->query->order($column, $direction !== null ? $direction : $order);
         }
         $this->isSorted = true;
         return $this;
@@ -379,6 +376,16 @@ abstract class DataView implements QueryInterface, IteratorAggregate
     }
 
     /**
+     * Get the view's search columns
+     *
+     * @return string[]
+     */
+    public function getSearchColumns()
+    {
+        return array();
+    }
+
+    /**
      * @deprecated(EL): Only use DataView::applyFilter() for applying filter because all other functions are missing
      * column validation.
      */
@@ -474,15 +481,13 @@ abstract class DataView implements QueryInterface, IteratorAggregate
     }
 
     /**
-     * Fetch a column of all rows of the result set as an array
-     *
-     * @param   int $columnIndex Index of the column to fetch
+     * Fetch the first column of all rows of the result set as an array
      *
      * @return  array
      */
-    public function fetchColumn($columnIndex = 0)
+    public function fetchColumn()
     {
-        return $this->getQuery()->fetchColumn($columnIndex);
+        return $this->getQuery()->fetchColumn();
     }
 
     /**

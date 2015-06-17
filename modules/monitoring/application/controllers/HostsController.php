@@ -46,14 +46,17 @@ class Monitoring_HostsController extends Controller
                 'icon'  => 'host'
             )
         )->extend(new DashboardAction())->activate('show');
-        
+
         $this->view->listAllLink = Url::fromRequest()->setPath('monitoring/list/hosts')->setQueryString($filterString);
     }
 
     protected function handleCommandForm(ObjectsCommandForm $form)
     {
         $this->hostList->setColumns(array(
+            'host_icon_image',
+            'host_icon_image_alt',
             'host_name',
+            'host_address',
             'host_state',
             'host_problem',
             'host_handled',
@@ -76,11 +79,6 @@ class Monitoring_HostsController extends Controller
         $this->view->form = $form;
         $this->view->objects = $this->hostList;
         $this->view->stats = $this->hostList->getStateSummary();
-        $this->view->hostStatesPieChart = InlinePie::createFromStateSummary(
-            $this->view->stats,
-            $this->translate('Host State'),
-            InlinePie::$colorsHostStatesHandledUnhandled
-        );
         $this->_helper->viewRenderer('partials/command/objects-command-form', null, true);
         return $form;
     }
@@ -94,7 +92,10 @@ class Monitoring_HostsController extends Controller
             ->handleRequest();
         $this->view->checkNowForm = $checkNowForm;
         $this->hostList->setColumns(array(
+            'host_icon_image',
+            'host_icon_image_alt',
             'host_name',
+            'host_address',
             'host_state',
             'host_problem',
             'host_handled',
@@ -132,14 +133,16 @@ class Monitoring_HostsController extends Controller
         $this->view->objects = $this->hostList;
         $this->view->unhandledObjects = $this->hostList->getUnhandledObjects();
         $this->view->problemObjects = $this->hostList->getProblemObjects();
-
         $this->view->acknowledgeUnhandledLink = Url::fromPath('monitoring/hosts/acknowledge-problem')
-            ->setQueryString($this->hostList->getUnhandledObjects()->objectsFilter());
+            ->setQueryString($this->hostList->getUnhandledObjects()->objectsFilter()->toQueryString());
         $this->view->downtimeUnhandledLink = Url::fromPath('monitoring/hosts/schedule-downtime')
-            ->setQueryString($this->hostList->getUnhandledObjects()->objectsFilter());
+            ->setQueryString($this->hostList->getUnhandledObjects()->objectsFilter()->toQueryString());
         $this->view->downtimeLink = Url::fromPath('monitoring/hosts/schedule-downtime')
-            ->setQueryString($this->hostList->getProblemObjects()->objectsFilter());
+            ->setQueryString($this->hostList->getProblemObjects()->objectsFilter()->toQueryString());
         $this->view->acknowledgedObjects = $this->hostList->getAcknowledgedObjects();
+        $this->view->acknowledgeLink = Url::fromPath('monitoring/hosts/acknowledge-problem')
+            ->setQueryString($this->hostList->getUnacknowledgedObjects()->objectsFilter()->toQueryString());
+        $this->view->unacknowledgedObjects = $this->hostList->getUnacknowledgedObjects();
         $this->view->objectsInDowntime = $this->hostList->getObjectsInDowntime();
         $this->view->inDowntimeLink = Url::fromPath('monitoring/list/hosts')
             ->setQueryString(

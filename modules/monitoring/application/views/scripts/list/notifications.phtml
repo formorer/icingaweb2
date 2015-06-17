@@ -48,11 +48,7 @@ $notificationReasons = array(
         <tr class="state <?= $stateName ?>">
             <td class="state">
                 <strong><?= $stateDisplayName ?></strong><br />
-                <?= $this->dateTimeRenderer($notification->notification_start_time)->render(
-                    $this->translate('on %s', 'datetime'),
-                    $this->translate('at %s', 'time'),
-                    $this->translate('%s ago', 'timespan')
-                ) ?>
+                <?= $this->timeAgo($notification->notification_start_time, $this->compact) ?>
             </td>
             <td class="notification-reason"><?= $reason === 0 ? (
                 $notification->notification_state === 0

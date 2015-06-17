@@ -96,11 +96,6 @@ select::-moz-focus-inner {
   outline: 0;
 }
 
-input:disabled, select:disabled {
-    background-color: #fff;
-    border-color: white;
-}
-
 form.inline {
   margin: 0;
   padding: 0;
@@ -213,6 +208,13 @@ select, input[type=text], textarea {
 
 textarea {
   height: 4em;
+}
+
+textarea.resource {
+  &.ssh-identity {
+    width: 50%;
+    height: 25em;
+  }
 }
 
 form .description {

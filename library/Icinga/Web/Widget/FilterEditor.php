@@ -10,6 +10,7 @@ use Icinga\Data\Filter\FilterOr;
 use Icinga\Web\Url;
 use Icinga\Application\Icinga;
 use Icinga\Exception\ProgrammingError;
+use Icinga\Web\Notification;
 use Exception;
 
 /**
@@ -215,46 +216,22 @@ class FilterEditor extends AbstractWidget
         $filter = $this->getFilter();
 
         if ($search !== null) {
-            if ($this->searchColumns === null) {
-                if (strpos($search, '=') === false) {
-                    // TODO: Ask the view for (multiple) search columns
-                    switch($request->getActionName()) {
-                        case 'services':
-                            $searchCol = 'service';
-                            break;
-                        case 'hosts':
-                            $searchCol = 'host';
-                            break;
-                        case 'hostgroups':
-                            $searchCol = 'hostgroup';
-                            break;
-                        case 'servicegroups':
-                            $searchCol = 'servicegroup';
-                            break;
-                        default:
-                            $searchCol = null;
-                    }
-
-                    if ($searchCol === null) {
-                        throw new Exception('Cannot search here');
-                    }
-                    $search = ltrim($search);
-                    $filter = $this->mergeRootExpression($filter, $searchCol, '=', "*$search*");
-                } else {
-                    list($k, $v) = preg_split('/=/', $search);
-                    $filter = $this->mergeRootExpression($filter, trim($k), '=', ltrim($v));
-                }
-            } else {
-                if (false === $this->resetSearchColumns($filter)) {
+            if (strpos($search, '=') !== false) {
+                list($k, $v) = preg_split('/=/', $search);
+                $filter = $this->mergeRootExpression($filter, trim($k), '=', ltrim($v));
+            } elseif (! empty($this->searchColumns)) {
+                if (! $this->resetSearchColumns($filter)) {
                     $filter = Filter::matchAll();
                 }
-
                 $filters = array();
                 $search = ltrim($search);
                 foreach ($this->searchColumns as $searchColumn) {
                     $filters[] = Filter::expression($searchColumn, '=', "*$search*");
                 }
-                $filter->andFilter(new FilterOr($filters));
+                $filter = $filter->andFilter(new FilterOr($filters));
+            } else {
+                Notification::error(mt('monitoring', 'Cannot search here'));
+                return $this;
             }
 
             $url = $this->url()->setQueryString(

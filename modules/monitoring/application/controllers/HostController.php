@@ -1,7 +1,6 @@
 <?php
 /* Icinga Web 2 | (c) 2013-2015 Icinga Development Team | GPLv2+ */
 
-use Icinga\Exception\MissingParameterException;
 use Icinga\Module\Monitoring\Forms\Command\Object\AcknowledgeProblemCommandForm;
 use Icinga\Module\Monitoring\Forms\Command\Object\AddCommentCommandForm;
 use Icinga\Module\Monitoring\Forms\Command\Object\ProcessCheckResultCommandForm;
@@ -22,27 +21,15 @@ class Monitoring_HostController extends MonitoredObjectController
 
     /**
      * Fetch the requested host from the monitoring backend
-     *
-     * @throws Zend_Controller_Action_Exception If the host was not found
      */
     public function init()
     {
-        if ($this->params->get('host') === null) {
-            throw new MissingParameterException(
-                $this->translate('Required parameter \'%s\' is missing'),
-                'host'
-            );
-        }
-
-        $host = new Host($this->backend, $this->params->get('host'));
+        $host = new Host($this->backend, $this->params->getRequired('host'));
 
         $this->applyRestriction('monitoring/hosts/filter', $host);
 
         if ($host->fetch() === false) {
-            throw new Zend_Controller_Action_Exception(
-                sprintf($this->translate('Host \'%s\' not found'), $this->params->get('host')),
-                404
-            );
+            $this->httpNotFound($this->translate('Host not found'));
         }
         $this->object = $host;
         $this->createTabs();
@@ -74,6 +61,54 @@ class Monitoring_HostController extends MonitoredObjectController
     {
         $this->view->actions = $this->getHostActions();
         parent::showAction();
+    }
+
+    /**
+     * List a host's services
+     */
+    public function servicesAction()
+    {
+        $this->setAutorefreshInterval(10);
+        $this->getTabs()->activate('services');
+        $query = $this->backend->select()->from('serviceStatus', array(
+            'host_name',
+            'host_display_name',
+            'host_state',
+            'host_state_type',
+            'host_last_state_change',
+            'host_address',
+            'host_handled',
+            'service_description',
+            'service_display_name',
+            'service_state',
+            'service_in_downtime',
+            'service_acknowledged',
+            'service_handled',
+            'service_output',
+            'service_perfdata',
+            'service_attempt',
+            'service_last_state_change',
+            'service_icon_image',
+            'service_icon_image_alt',
+            'service_is_flapping',
+            'service_state_type',
+            'service_handled',
+            'service_severity',
+            'service_last_check',
+            'service_notifications_enabled',
+            'service_action_url',
+            'service_notes_url',
+            'service_last_comment',
+            'service_last_ack',
+            'service_last_downtime',
+            'service_active_checks_enabled',
+            'service_passive_checks_enabled',
+            'current_check_attempt' => 'service_current_check_attempt',
+            'max_check_attempts'    => 'service_max_check_attempts'
+        ));
+        $this->applyRestriction('monitoring/filter/objects', $query);
+        $this->view->services = $query->where('host_name', $this->object->getName());
+        $this->view->object = $this->object;
     }
 
     /**
