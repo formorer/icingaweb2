@@ -9,7 +9,7 @@ use Icinga\Application\Config;
 use Icinga\Application\Logger;
 use Icinga\Data\ConfigObject;
 use Icinga\Protocol\File\FileReader;
-use \Zend_Controller_Action_Exception as ActionError;
+use Zend_Controller_Action_Exception as ActionError;
 
 /**
  * Class ListController
