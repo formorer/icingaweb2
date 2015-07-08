@@ -893,8 +893,11 @@ class LdapConnection implements Selectable
      */
     protected function prepareNewConnection()
     {
+        $LDAPTLS_REQCERT = getenv('LDAPTLS_REQCERT');
         if ($this->encryption === static::STARTTLS || $this->encryption === static::LDAPS) {
-            $this->prepareTlsEnvironment();
+            if (! $this->validateCertificate) {
+                putenv('LDAPTLS_REQCERT=never');
+            }
         }
 
         $hostname = $this->hostname;
@@ -916,6 +919,9 @@ class LdapConnection implements Selectable
             $this->discoverySuccess = false;
         }
 
+        // clean up changes to ENV
+        putenv('LDAPTLS_REQCERT=' . $LDAPTLS_REQCERT);
+
         if ($this->encryption !== static::LDAPS &&
             ($this->encryption === static::STARTTLS || $this->capabilities->hasStartTls())) {
             Logger::debug('LDAP attempt encryption with STARTTLS');
@@ -934,32 +940,6 @@ class LdapConnection implements Selectable
         ldap_set_option($ds, LDAP_OPT_REFERRALS, 0);
         // ldap_set_option($ds, LDAP_OPT_DEREF, LDAP_DEREF_NEVER);
         return $ds;
-    }
-
-    /**
-     * Set up how to handle StartTLS connections
-     *
-     * @throws  LdapException   In case the LDAPRC environment variable cannot be set
-     */
-    protected function prepareTlsEnvironment()
-    {
-        // TODO: allow variable known CA location (system VS Icinga)
-        if (Platform::isWindows()) {
-            putenv('LDAPTLS_REQCERT=never');
-        } else {
-            if ($this->validateCertificate) {
-                Logger::debug('LDAP check valid server certificate');
-                $ldap_conf = $this->getConfigDir('ldap_ca.conf');
-            } else {
-                Logger::debug('LDAP ignore valid server certificate');
-                $ldap_conf = $this->getConfigDir('ldap_nocert.conf');
-            }
-
-            putenv('LDAPRC=' . $ldap_conf); // TODO: Does not have any effect
-            if (getenv('LDAPRC') !== $ldap_conf) {
-                throw new LdapException('putenv failed');
-            }
-        }
     }
 
     /**
@@ -1074,13 +1054,5 @@ class LdapConnection implements Selectable
         }
 
         return $dir;
-    }
-
-    /**
-     * Reset the environment variables set by self::prepareTlsEnvironment()
-     */
-    public function __destruct()
-    {
-        putenv('LDAPRC');
     }
 }
