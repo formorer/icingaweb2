@@ -930,15 +930,8 @@ class LdapConnection implements Selectable
             }
         }
 
-        // ldap_rename requires LDAPv3:
-        if ($this->capabilities->hasLdapV3()) {
-            if (! ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3)) {
-                throw new LdapException('LDAPv3 is required');
-            }
-        } else {
-            // TODO: remove this -> FORCING v3 for now
-            ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
-            Logger::warning('No LDAPv3 support detected');
+        if (! ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3)) {
+            throw new LdapException('LDAPv3 is required');
         }
 
         // Not setting this results in "Operations error" on AD when using the whole domain as search base
