@@ -899,35 +899,31 @@ class LdapConnection implements Selectable
 
         $hostname = $this->hostname;
         if ($this->encryption === static::LDAPS) {
+            Logger::debug('LDAP attempt encryption with LDAPS');
             $hostname = 'ldaps://' . $hostname;
         }
 
         $ds = ldap_connect($hostname, $this->port);
 
         try {
+            Logger::debug('LDAP discover capabilities');
             $this->capabilities = $this->discoverCapabilities($ds);
             $this->discoverySuccess = true;
         } catch (LdapException $e) {
             Logger::debug($e);
-            Logger::warning('LADP discovery failed, assuming default LDAP capabilities.');
+            Logger::warning('LDAP discovery failed, assuming default LDAP capabilities.');
             $this->capabilities = new Capability(); // create empty default capabilities
             $this->discoverySuccess = false;
         }
 
-        if ($this->encryption === static::STARTTLS) {
-            $force_tls = false;
-            if ($this->capabilities->hasStartTls()) {
-                if (@ldap_start_tls($ds)) {
-                    Logger::debug('LDAP STARTTLS succeeded');
-                } else {
-                    Logger::error('LDAP STARTTLS failed: %s', ldap_error($ds));
-                    throw new LdapException('LDAP STARTTLS failed: %s', ldap_error($ds));
-                }
-            } elseif ($force_tls) {
-                throw new LdapException('STARTTLS is required but not announced by %s', $this->hostname);
-            } else {
-                Logger::warning('LDAP STARTTLS enabled but not announced');
+        if ($this->encryption !== static::LDAPS &&
+            ($this->encryption === static::STARTTLS || $this->capabilities->hasStartTls())) {
+            Logger::debug('LDAP attempt encryption with STARTTLS');
+            if (! @ldap_start_tls($ds)) {
+                Logger::error('LDAP STARTTLS failed: %s', ldap_error($ds));
+                throw new LdapException('LDAP STARTTLS failed: %s', ldap_error($ds));
             }
+            Logger::debug('LDAP STARTTLS succeeded');
         }
 
         if (! ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3)) {
@@ -952,8 +948,10 @@ class LdapConnection implements Selectable
             putenv('LDAPTLS_REQCERT=never');
         } else {
             if ($this->validateCertificate) {
+                Logger::debug('LDAP check valid server certificate');
                 $ldap_conf = $this->getConfigDir('ldap_ca.conf');
             } else {
+                Logger::debug('LDAP ignore valid server certificate');
                 $ldap_conf = $this->getConfigDir('ldap_nocert.conf');
             }
 
