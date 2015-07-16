@@ -75,6 +75,7 @@ class Monitoring_ListController extends Controller
             'host_display_name',
             'host_state' => $stateColumn,
             'host_address',
+            'host_address6',
             'host_acknowledged',
             'host_output',
             'host_attempt',
@@ -119,6 +120,7 @@ class Monitoring_ListController extends Controller
             'host_state'        => $this->translate('Current State'),
             'host_display_name' => $this->translate('Hostname'),
             'host_address'      => $this->translate('Address'),
+            'host_address6'     => $this->translate('Address v6'),
             'host_last_check'   => $this->translate('Last Check')
         ), $query);
     }
@@ -151,6 +153,7 @@ class Monitoring_ListController extends Controller
             'host_state_type',
             'host_last_state_change',
             'host_address',
+            'host_address6',
             'host_handled',
             'service_description',
             'service_display_name',
@@ -196,6 +199,7 @@ class Monitoring_ListController extends Controller
             'host_state'            => $this->translate('Current Host State'),
             'host_display_name'     => $this->translate('Hostname'),
             'host_address'          => $this->translate('Host Address'),
+            'host_address6'         => $this->translate('Host Address v6'),
             'host_last_check'       => $this->translate('Last Host Check')
         ), $query);
 
